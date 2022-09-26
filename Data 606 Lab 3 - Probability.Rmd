@@ -1,0 +1,142 @@
+---
+title: "Probability"
+author: "Enid Roman"
+date: "`r Sys.Date()`"
+output: openintro::lab_report
+---
+
+```{r load-packages, message=FALSE}
+library(tidyverse)
+library(openintro)
+```
+
+## **The Hot Hand**
+
+### Exercise 1
+
+#### Streak length of 1 mean the streak contained 1 hit and 1 miss. Streak of 0 mean the streak contained 0 hit and 1 miss. 
+
+```{r code-chunk-label}
+glimpse(kobe_basket)
+```
+
+```{r}
+kobe_streak <- calc_streak(kobe_basket$shot)
+```
+
+```{r}
+ggplot(data = kobe_streak, aes(x = length)) +
+  geom_bar()
+```
+### Exercise 2
+
+#### The distribution of Kobe’s streak lengths from the 2009 NBA finals is unimodel (have a single prominent peak) and right skewed. His typical streak length is 0. The IQR of the distribution is 1. His longest streak of baskets of lenth 4.
+
+## **Simulations in R**
+
+```{r}
+coin_outcomes <- c("heads", "tails")
+sample(coin_outcomes, size = 1, replace = TRUE)
+```
+```{r}
+sim_fair_coin <- sample(coin_outcomes, size = 100, replace = TRUE)
+```
+
+```{r}
+sim_fair_coin
+```
+
+```{r}
+table(sim_fair_coin)
+```
+
+```{r}
+set.seed(2022)                 # make sure to change the seed
+sim_unfair_coin <- sample(coin_outcomes, size = 100, replace = TRUE, 
+                          prob = c(0.2, 0.8))
+```
+
+```{r}
+sim_unfair_coin
+```
+
+```{r}
+table(sim_unfair_coin)
+```
+
+### Exercise 3
+
+#### sim_unfair_coin
+#### heads tails 
+####   17    83 
+#### In the simulation of flipping the unfair coin 100 times, 17 flips came up heads, 
+
+```{r}
+?sample
+```
+
+## **Simulating the Independent Shooter**
+
+
+```{r}
+shot_outcomes <- c("H", "M")
+sim_basket <- sample(shot_outcomes, size = 1, replace = TRUE)
+shot_outcomes
+```
+```{r}
+table(shot_outcomes)
+```
+
+### Exercise 4
+
+#### The change needs to be made to the sample function so that it reflects a shooting percentage of 45% is the H (hit) needs to be .45 and the M(miss) needs to be .55. The simulated independent shooter result With probability of hits being 45% and miss being 55% in 133 shots is 61 hits and 72 misses.
+
+```{r}
+set.seed(2022)                 
+sim_basket <- sample(shot_outcomes, size = 133, replace = TRUE, 
+                          prob = c(0.45, 0.55))
+sim_basket
+```
+
+```{r}
+table(sim_basket)
+```
+
+## **More Practice**
+
+```{r}
+sim_streak <- calc_streak(sim_basket)
+```
+
+```{r}
+ggplot(data = kobe_streak, aes(x = length)) +
+  geom_bar()
+```
+
+### Exercise 5
+
+```{r}
+ggplot(data = sim_streak, aes(x = length)) +
+  geom_bar()
+```
+### Exercise 6
+
+#### The typical streak length for this simulated independent shooter with a 45% shooting percentage is unimodel (have a single prominent peak) and right skewed, with a potentially unusual observation of an outlier at 6 streak. His typical streak length is 0. His IQR of the distribution is 1.His longest streak of baskets was 6.
+
+### Exercise 7
+
+#### If I were to run the simulation of the independent shooter a second time, I would expect its streak distribution to be somewhat different compare to the distribution from the question # 4? The reason for this is the simulated independent shooter result With probability of hits being 45% and miss being 55% in 133 shots is now 69 hits and 64 misses.
+
+```{r}
+sim_basket <- sample(shot_outcomes, size = 133, replace = TRUE, 
+                          prob = c(0.45, 0.55))
+sim_basket
+```
+
+```{r}
+table(sim_basket)
+```
+
+### Exercise 8
+
+#### Kobe Bryant’s distribution of streak lengths compare to the distribution of streak lengths for the simulated shooter are similar. There is not enough evidence that the hot hand theory to Kobe bryants shooting data. Both have similarities that the data plots are unimodel (have a single prominent peak), both are right skewed, and both typical streak length 0, both IQR of distribution is 1. The difference is Kobe had a longest streak lengths of 4 compare to the simulate shooter longest steak lengths of 6, which is potentially unusual observation of an outlier at 6 streak. Kobe shots seem to be independent of each other. 
