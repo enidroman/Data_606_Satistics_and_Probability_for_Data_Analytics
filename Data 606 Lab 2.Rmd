@@ -1,0 +1,196 @@
+---
+title: "Introduction to Data"
+author: "Enid Roman"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+
+```{r}
+library(tidyverse)
+library(openintro)
+```
+
+###**nycflights**
+
+```{r}
+data('nycflights', package='openintro')
+```
+
+
+```{r}
+nycflights
+```
+```{r}
+names(nycflights)
+```
+
+```{r}
+?nycflights
+```
+
+```{r}
+glimpse(nycflights)
+```
+
+```{r}
+ggplot(data = nycflights, aes(x = dep_delay)) +
+  geom_histogram()
+```
+```{r}
+ggplot(data = nycflights, aes(x = dep_delay)) +
+  geom_histogram(binwidth = 15)
+```
+```{r}
+ggplot(data = nycflights, aes(x = dep_delay)) +
+  geom_histogram(binwidth = 150)
+
+```
+### Exercise 1
+
+Yes, more departure delay is revealed in binwidth 15 then the regular histogram and binwidth 150. Binwidth 150 has departure delay that are obsecured. 
+
+```{r}
+lax_flights <- nycflights %>%
+  filter(dest == "LAX")
+ggplot(data = lax_flights, aes(x = dep_delay)) +
+  geom_histogram()
+```
+```{r}
+lax_flights %>%
+  summarise(mean_dd   = mean(dep_delay), 
+            median_dd = median(dep_delay), 
+            n         = n())
+```
+### Excercise 2
+
+There are 68 flights that meet the below criteria. 
+
+```{r}
+sfo_feb_flights <- nycflights %>%
+  filter(dest == "SFO", month == 2)
+sfo_feb_flights
+```
+```{r}
+sfo_feb_flights %>%
+summarise (n = n())
+```
+### Excersie 3
+
+The histogram is a right-skewed distribution in which most values are clustered around the left tail of the distribution while the right tail of the distribution is longer. 
+
+```{r}
+ggplot(data = sfo_feb_flights, aes(x = arr_delay)) +
+  geom_histogram(binwidth = 10)
+```
+Since the distribution is skewed, we would use the median and IQR to describe the distribution
+
+```{r}
+sfo_feb_flights %>%
+  # summarize(mean(arr_delay), median(arr_delay), max(arr_delay))
+  summarise(median_ad = median(arr_delay), 
+            iqr_ad = IQR(arr_delay), 
+            n_flights = n())
+```
+```{r}
+sfo_feb_flights %>%
+  group_by(origin) %>%
+  summarise(median_dd = median(dep_delay), iqr_dd = IQR(dep_delay), n_flights = n())
+```
+
+### Exercise 4
+
+Both DL and UA has the most variable arrival delays because their IQR are both the highest which is 22.00. 
+
+```{r}
+sfo_feb_flights %>%
+  group_by(carrier) %>%
+  summarise(median_arr = median(arr_delay), iqr_arr = IQR(arr_delay), n_flights = n())
+
+```
+
+I would expect December to have the highest delays because of the cold and snow. But the data below shows that is actually July. 
+
+```{r}
+nycflights %>%
+  group_by(month) %>%
+  summarise(mean_dd = mean(dep_delay)) %>%
+  arrange(desc(mean_dd))
+```
+### Excerise 5
+
+The pro of using the mean is it actually giving you an average of delays for each month, showing the affect of each delay and showing how the data is distributed. The con of using mean it can be affected by outliers. 
+
+The pro of using median is it uses the middle value of the entire data set, so the outliers do not affect the median. The con of using the median is it's not showing the whole data distribution. 
+
+
+```{r}
+nycflights %>%
+  group_by(month) %>%
+  summarise(median_dd = median(dep_delay)) %>%
+  arrange(desc(median_dd))
+```
+```{r}
+nycflights <- nycflights %>%
+  mutate(dep_type = ifelse(dep_delay < 5, "on time", "delayed"))
+```
+
+```{r}
+nycflights %>%
+  group_by(origin) %>%
+  summarise(ot_dep_rate = sum(dep_type == "on time") / n()) %>%
+  arrange(desc(ot_dep_rate))
+```
+
+### Excerise 6
+
+Based on the above departure rate, LGA at .73 would be the NYC airport I would choose to fly out of. Based on the graph below LGA has the least departure delays then JFK and EWR. 
+
+
+```{r}
+ggplot(data = nycflights, aes(x = origin, fill = dep_type)) +
+  geom_bar()
+```
+### Excerise 7
+
+```{r}
+nycflights <- nycflights %>%
+  mutate(avg_speed = 60*(distance / air_time))
+glimpse(nycflights)
+```
+
+### Excerise 8
+
+The relationship between average speed and distance in the scatter plot below is as the distance increases so does the average speed increases. There is a postive association between distance and average speed, 
+
+```{r}
+ggplot(data = nycflights, aes(distance, avg_speed)) +
+  geom_point()
+```
+### Excerise 9
+
+Based on the scatterplot below the cutoff point for departure delays where you can still expect to get to your destination on time is is approximately 6 minutes after departure time, which is very rare.  
+
+
+
+```{r}
+nycflights_carrier <- nycflights %>%
+filter(carrier == "AA" | carrier == "DL" | carrier == "UA")
+ggplot(data = nycflights_carrier, aes(x = dep_delay, y = arr_delay, color= carrier)) + geom_point()
+
+```
+
+
