@@ -1,0 +1,291 @@
+---
+title: "Data_606_Lab_6_Inference for categorical data.rmd"
+author: "Enid Roman"
+date: "2022-10-18"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+set.seed(500)
+library(tidyverse)
+library(openintro)
+library(infer)
+```
+```{r}
+data('yrbss', package='openintro')
+print(head(yrbss,2))
+```
+### Exercise 1 
+
+#### The counts within each category for the amount of days these students have texted while driving within the past 30 days are:
+#### 4792 have reported 0 days.
+#### 4646 have reported did not drive. 
+#### 925 have reported drive 1 to 2 days.
+#### 918 have reported NA days
+#### 827 have reported 30 days. 
+#### 493 have reported 3 to 5 days.
+#### 373 have reported 10 to 19 days.
+#### 311 have reported 6 to 9 days. 
+#### 298 have reported 20 to 29 days. 
+
+```{r}
+yrbss %>%
+  count(text_while_driving_30d, sort=TRUE)
+  
+```
+
+### Exercise 2
+
+#### 6.64% (463/6977) (if counting the NA) is the proportion of people who have texted while driving every day in the past 30 days and never wear helmets. (See below)
+
+```{r}
+data('yrbss', package='openintro')
+no_helmet <- yrbss %>%
+  filter(helmet_12m == "never") 
+no_helmet <- no_helmet %>%
+  mutate(text_ind = ifelse(text_while_driving_30d == "30", "yes", "no"))
+no_helmet %>%
+  count(text_ind)
+```
+```{r}
+no_helmet %>%
+filter(!is.na(text_ind)) %>%
+filter(helmet_12m == "never") %>%
+filter(text_ind == "yes") %>%
+nrow() / nrow(no_helmet)
+```
+```{r}
+no_helmet %>%
+filter(text_ind != "") %>%
+specify(response = text_ind, success = "yes") %>%
+generate(reps = 1000, type = "bootstrap") %>%
+calculate(stat = "prop") %>%
+get_ci(level = 0.95)
+```
+### Exercise 3
+
+#### We are 95% confident that the proportion of non-helmet wearers that have texted while driving each day for the past 30 days based on this survey is between 6.57% and 7.75%.
+
+#### The margin of error for the estimate of the proportion of non-helmet wearers that have texted while driving each day for the past 30 days based on this survey is .0063 or 6%
+
+
+```{r}
+1.96 * sqrt((0.0775*(1-.0775)/6977))
+```
+### Exercise 4 
+
+#### Hours TV Per School Day
+
+#### Proportion of Interest of students who reported watching less than 1 hr of tv per school day is 15.96% (2168/13583).
+#### We are 95% confident that the proportion of students who reported watching less than 1 hr of tv per school day is between 15.72% and 17.04%.
+#### The margin of error for the estimate of the proportion of students who reported watching less than 1 hr of tv per school day is .0064 or 6%.
+
+#### School Night Hours of Sleep
+
+#### Proportion of Interest of students who reported less than 5hrs of sleep on school nights is 7.15% (965/12335).
+#### We are 95% confident that the proportion of students who reported less than 5hrs of sleep on school nights is between 7.36% and 8.30%. 
+#### The margin of error for the estimate of the proportion of students who reported less than 5hrs of sleep on school nights is .0048 or 5%.
+
+
+```{r}
+yrbss %>%
+  count(hours_tv_per_school_day, sort=TRUE)
+```
+
+```{r}
+tv<- yrbss %>%
+  filter(!is.na(hours_tv_per_school_day)) %>%
+  mutate(tv_ind = ifelse(hours_tv_per_school_day == "<1", "yes", "no"))
+
+tv %>%
+  count(tv_ind)
+```
+
+
+```{r}
+
+tv %>%
+    specify(response = tv_ind, success = "yes") %>%
+  generate(reps = 1000, type = "bootstrap") %>%
+  calculate(stat = "prop") %>%
+  get_ci(level = 0.95)
+
+```
+```{r}
+1.96 * sqrt((.1704*(1-.1704)/13245))
+```
+#### School Night Hours Sleep
+
+```{r}
+yrbss %>%
+  count(school_night_hours_sleep, sort=TRUE)
+```
+
+```{r}
+sleep <- yrbss %>%
+  filter(!is.na(school_night_hours_sleep)) %>%
+  mutate(sleep_ind = ifelse(school_night_hours_sleep == "<5", "yes", "no"))
+
+sleep %>%
+  count(sleep_ind)
+```
+
+```{r}
+sleep %>%
+ specify(response = sleep_ind, success = "yes") %>%
+ generate(reps = 1000, type = "bootstrap") %>%
+ calculate(stat = "prop") %>%
+ get_ci(level = 0.95)
+```
+```{r}
+1.96 * sqrt((.0831*(1-.0831)/12335))
+```
+
+```{r}
+n <- 1000
+```
+
+```{r}
+p <- seq(from = 0, to = 1, by = 0.01)
+me <- 2 * sqrt(p * (1 - p)/n)
+p
+```
+
+```{r}
+dd <- data.frame(p = p, me = me)
+ggplot(data = dd, aes(x = p, y = me)) + 
+  geom_line() +
+  labs(x = "Population Proportion", y = "Margin of Error")
+```
+
+### Exercise 5 
+
+#### The relationship between p and me is the margin of error increases as the population proportion increases. Margin of error is greatest at the population of 50%. For a given sample size for which a value of p is margin of error maximized is at .5.
+
+### Exercise 6 (Not sure which app you were referring to)
+
+#### The distribution of sampling proportions with sampling size of 300 and p=0.1, center is at .01 and spread conformsis .08 to .11.
+
+```{r}
+p <- 0.1
+n <- 300
+
+(p*(1-p)/n)^.5
+```
+```{r}
+.1-(p*(1-p)/n)^.5
+```
+```{r}
+.1+(p*(1-p)/n)^.5
+```
+### Exercise 7
+
+#### Keeping the n constant and changing p the shape and center does change. The spread of the sampling distribution does vary as p changes. The distribution of sampling proportions with sampling size of 300 and p=0.5, center is at .03 and spread conformsis .07 to .12. Increasing the p does increase the spread. 
+
+```{r}
+p <- 0.5
+n <- 300
+
+(p*(1-p)/n)^.5
+```
+
+```{r}
+.1-(p*(1-p)/n)^.5
+
+```
+
+```{r}
+.1+(p*(1-p)/n)^.5
+```
+### Exercise 8
+
+#### Keeping the n constant and changing p the shape and center does not change much. The spread of the sampling distribution does vary as p changes. The distribution of sampling proportions with sampling size of 300 and p=0.5, center is at .03 and spread conformsis .08 to .13. Increasing the n does increase the spread a little.
+
+```{r}
+p <- 0.5
+n <- 400
+
+(p*(1-p)/n)^.5
+```
+
+```{r}
+.1-(p*(1-p)/n)^.5
+```
+
+```{r}
+.1+(p*(1-p)/n)^.5
+```
+
+
+### Exercise 9
+
+#### Yes, there is convincing evidence that those who sleep 10+ hours per day are more likely to strength train every day of the week. The confidence interval range for sleep less than 10 is from 26.04% to 27.67%. The confidence interval range for sleep more than 10 is from 31.63% to 41.86%. Is a aprox. 5% to 15% difference.
+
+```{r}
+sleep_less_than_10 <- yrbss %>%
+  filter(school_night_hours_sleep != "10+") 
+
+sleep_less_than_10 %>%
+  mutate(physical = ifelse(physically_active_7d == 7, "yes", "no")) %>%
+  drop_na(physical) %>%
+  specify(response = physical, success = "yes") %>%
+  generate(reps = 1000, type = "bootstrap") %>%
+  calculate(stat = "prop") %>%
+  get_ci(level = 0.95)
+```
+
+```{r}
+sleep_10plus <- yrbss %>%
+  filter(school_night_hours_sleep == "10+") 
+
+sleep_10plus %>%
+  mutate(physical = ifelse(physically_active_7d == 7, "yes", "no")) %>%
+  drop_na(physical) %>%
+  specify(response = physical, success = "yes") %>%
+  generate(reps = 1000, type = "bootstrap") %>%
+  calculate(stat = "prop") %>%
+  get_ci(level = 0.95)
+```
+### Exercise 10
+
+#### The probablity that you could detect a change (at a significance level of 0.05) simply by chance would be 62%. 
+
+```{r}
+mu <- 2.5
+(cv <- qnorm(0.05, 
+             mean=0, 
+             sd=1, 
+            lower.tail=FALSE))
+```
+
+
+```{r}
+pnorm(mu, mean=0, sd=1, lower.tail=FALSE)
+```
+### Exercise 11
+
+#### With and estimate margin of error no greater than 1% with 95% confidence. I would have to sample 9694 people to ensure that you I am within the guidelines.
+
+#### ME <-  1.96 * SE for 95% confidence margin
+#### SE <-  sqrt(p*(1 - p)/n)
+#### ME <-  1.96 * sqrt(p*(1 - p)/n)
+#### ME^2 <-  1.96^2 * p*(1 - p)/n
+#### n <-  1.96^2 * p*(1 - p)/ME^2
+
+```{r}
+
+ME <- 0.01
+p <- 0.5
+
+1.96^2 * p *(1 - 0.5)/ME^2
+```
+
+
+
+
