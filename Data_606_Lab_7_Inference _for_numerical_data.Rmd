@@ -1,0 +1,375 @@
+---
+title: "Data_606_Lab_7_Inference _for_numerical_data.rmd"
+author: "Enid Roman"
+date: "2022-10-29"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(openintro)
+library(infer)
+```
+```{r}
+data('yrbss', package='openintro')
+```
+
+```{r}
+?yrbss
+```
+
+### Exercise 1
+
+#### The cases in this dataset is CDC's Youth Risk Behavior Surveillance System. There are 13,583 cases, which is the same amount of the rows in this dataset on 13 variables, age, gender, grade, hispanic or not, race, height, weight, How often did they wear a helmet when biking in the last 12 months?, How many days did they text while driving in the last 30 days?, How many days were they physically active for 60+ minutes in the last 7 days?, How many hours of TV do they typically watch on a school night?, How many days did they do strength training (e.g. lift weights) in the last 7 days?, and How many hours of sleep do they typically get on a school night?
+
+```{r}
+glimpse(yrbss)
+```
+
+```{r}
+summary(yrbss$weight)
+```
+
+### Exercise 2
+
+#### There are 1004 observations that are missing wights.
+
+```{r}
+sum(is.na(yrbss$weight))
+```
+```{r}
+yrbss <- yrbss %>% 
+  mutate(physical_3plus = ifelse(yrbss$physically_active_7d > 2, "yes", "no"))
+```
+
+### Exercise 3
+
+#### Yes, there seems to be a relationship between physical activity and weight. The weights are pretty similar for those that are physcial active in 3 days and those that are not. There is a higher concentration of weight measures clustered together for those who exercise than those who don’t. There are more outliers in weight for those that don't exercise. The data is more normally distribured for those who exercise than for those who don’t exercise. 
+
+```{r}
+yrbss_plot <- yrbss %>% 
+  mutate(physical_3plus = ifelse(yrbss$physically_active_7d > 2, "yes", "no")) %>%
+  na.omit()
+ggplot(yrbss_plot, aes(x=weight, y=physical_3plus)) + geom_boxplot() + theme_bw()
+```
+```{r}
+yrbss %>%
+  group_by(physical_3plus) %>%
+  summarise(mean_weight = mean(weight, na.rm = TRUE))
+```
+
+### Exercise 4
+
+#### Yes, all conditions is necessary for inference to be satisfied. The two conditions for inference are normality and independence. According to the data, we can see that it is a representative sample of many students across national, state,and tribal territories. All students are independent of each other. According to the box plots above, we can also see that the data appears to be normally distributed. All three conditions for inference on the difference between two means are met.
+
+```{r}
+yrbss %>% 
+  group_by(physical_3plus) %>% 
+  summarise(freq = table(weight)) %>%
+  summarise(n = sum(freq))
+```
+
+### Exercise 5
+
+#### H0: Students who are physically active 3 or more days per week have the same average weight as those who are not physically active 3 or more days per week.
+#### HA: Students who are physically active 3 or more days per week have a different average weight when compared to those who are not physically active 3 or more days per week.
+
+```{r}
+set.seed(100)
+obs_diff <- yrbss %>%
+  filter(physical_3plus != "NA")%>%
+  specify(weight ~ physical_3plus) %>%
+  calculate(stat = "diff in means", order = c("yes", "no"))
+
+```
+
+```{r}
+null_dist <- yrbss %>%
+  filter(physical_3plus != "NA")%>%
+  specify(weight ~ physical_3plus) %>%
+  hypothesize(null = "independence") %>%
+  generate(reps = 1000, type = "permute") %>%
+  calculate(stat = "diff in means", order = c("yes", "no"))
+
+```
+
+```{r}
+ggplot(data = null_dist, aes(x = stat)) +
+  geom_histogram()
+```
+#### Excercise 6
+
+### None of the values are greater than the obs_diff_stat.
+
+```{r}
+visualize(null_dist) + 
+  shade_p_value(obs_stat = obs_diff, direction = "two_sided")
+```
+
+
+```{r}
+obs_diff_val<-obs_diff$stat[1]
+
+null_list<-as.list(null_dist$stat)
+null_abs<-lapply(null_list, FUN=function(x){abs(x)})
+
+null_dist%>%
+  summarise(mean= mean(stat, na.rm=TRUE))
+```
+```{r}
+null_dist%>%
+  filter(stat>obs_diff_val)
+```
+
+```{r}
+null_dist %>%
+  get_p_value(obs_stat = obs_diff, direction = "two_sided")
+```
+### Exercise 7 
+
+#### Construct and record a confidence interval for the difference between the weights of those who exercise at least three times a week and those who don’t.
+
+```{r}
+# SD
+
+yrbss %>% 
+  group_by(physical_3plus) %>% 
+  summarise(sd_weight = sd(weight, na.rm = TRUE))
+```
+
+```{r}
+# Mean
+
+yrbss %>% 
+  group_by(physical_3plus) %>% 
+  summarise(mean_weight = mean(weight, na.rm = TRUE))
+```
+
+```{r}
+# Sample Size N
+
+yrbss %>% 
+  group_by(physical_3plus) %>% 
+  summarise(freq = table(weight)) %>%
+  summarise(n = sum(freq))
+```
+
+```{r}
+mean_not_active <- 66.67389
+n_not_active <- 4022
+sd_not_active <- 17.63805
+
+mean_active <- 68.44847
+n_active <- 8342
+sd_active <- 16.47832
+
+z = 1.96
+
+#CI for those not active
+upper_ci_not_act <- mean_not_active + z*(sd_not_active/sqrt(n_not_active))
+
+lower_ci_not_act <- mean_not_active - z*(sd_not_active/sqrt(n_not_active))
+
+#CI for those active
+upper_ci_act <- mean_active + z*(sd_active/sqrt(n_active))
+
+lower_ci_act <- mean_active - z*(sd_active/sqrt(n_active))
+```
+
+```{r}
+c("Those not active:", lower_ci_not_act, upper_ci_not_act)
+```
+```{r}
+c("Those active:", lower_ci_act, upper_ci_act)
+```
+### Exercise 8
+
+#### At a 95% Confidence Interval, we can say the average height of the students of the population is between 1.689m and 1.693m.
+
+```{r}
+tb <- as.data.frame(table(yrbss$height))
+freq <- sum(tb$Freq)
+
+mean_height <- mean(yrbss$height, na.rm = TRUE)
+sd_height <- sd(yrbss$height, na.rm = TRUE)
+sample_height <- yrbss %>% 
+  summarise(freq = table(height)) %>%
+  summarise(n = sum(freq, na.rm = TRUE))
+
+height_upper <- mean_height + z*(sd_height/sqrt(sample_height))
+
+height_lower <- mean_height - z*(sd_height/sqrt(sample_height))
+
+c(height_lower,height_upper)
+```
+
+### Exercise 9 (see below)
+
+```{r}
+z2 <- 1.645
+
+height_upper_2 <- mean_height + z2*(sd_height/sqrt(sample_height))
+
+height_lower_2 <- mean_height - z2*(sd_height/sqrt(sample_height))
+
+c(height_lower_2 ,height_upper_2)
+```
+
+#### Difference between both Conference Intervals:
+
+```{r}
+x <- abs(height_lower_2 - height_lower)
+y <- abs(height_upper_2 - height_upper)
+
+c(x,y)
+```
+
+### Exercise 10
+
+#### H0: Students who are physically active 3 or more days per week have the same average height as those who are not physically active 3 or more days per week.
+#### HA: Students who are physically active 3 or more days per week have a different average height when compared to those who are not physically active 3 or more days per week.
+
+#### At a confidence level of 95%, the average height of students who are physically active at least 3 days/week, is between ~1.701m and 1.705m. The average height of students who are not physically active is between ~1.663m and ~1.670m.
+
+#### The P value is less than 0.05, we reject the null hypothesis. Thus, there is a difference of those who are physically active at least 3x/week.
+
+```{r}
+obs_diff_hgt <- yrbss %>%
+  filter(physical_3plus != "NA")%>%
+  specify(height ~ physical_3plus) %>%
+  calculate(stat = "diff in means", order = c("yes", "no"))
+```
+```{r}
+set.seed(100)
+null_dist_hgt <- yrbss %>%
+  filter(physical_3plus != "NA")%>%
+  specify(height ~ physical_3plus) %>%
+  hypothesize(null = "independence") %>%
+  generate(reps = 1000, type = "permute") %>%
+  calculate(stat = "diff in means", order = c("yes", "no"))
+```
+```{r}
+visualize(null_dist_hgt) + 
+  shade_p_value(obs_stat = obs_diff_hgt, direction = "two_sided")
+```
+```{r}
+null_dist_hgt %>%
+  get_p_value(obs_stat = obs_diff_hgt, direction = "two_sided")
+```
+```{r}
+# Non active
+mean_height_2 <- 1.6665
+samples_2 <- 4022
+sd_height_2 <- 0.1029
+
+# Active
+mean_height_2a <- 1.7032
+samples_2a <- 8342
+sd_height_2a <- 0.1033
+
+z_2 = 1.96
+```
+
+```{r}
+#Non Active
+upper_non_active <- mean_height_2 + z*(sd_height_2/sqrt(samples_2))
+
+lower_non_active <- mean_height_2 - z*(sd_height_2/sqrt(samples_2))
+
+c("Non-active heights:", lower_non_active, upper_non_active)
+```
+```{r}
+#Active
+upper_active <- mean_height_2a + z*(sd_height_2a/sqrt(samples_2a))
+
+lower_active <- mean_height_2a - z*(sd_height_2a/sqrt(samples_2a))
+
+c("Active heights:", lower_active, upper_active)
+```
+### Exercise 11
+
+#### There are 7 different options for the hours_tv_per_school_day. 
+
+```{r}
+yrbss %>%group_by(hours_tv_per_school_day)%>% summarise(n())
+```
+
+### Exercise 12
+
+#### Is there evidence that students who are heavier than the mean weight sleep more than students who weight less than the mean weight?
+
+#### HO: There is a relationship between weight and sleep
+
+#### HA: There is no relationship between weight and sleep
+
+#### 95% confident level
+
+#### Conditions:
+
+####-Independent sample-yes - Normality - yes
+
+#### Results:
+
+#### Because our P-value is equal to our alpha, 0.05, we cannot reject the null hypothesis. Therefore, we cannot determine there exists a relationship between weight and sleep.
+
+```{r}
+yrbss <- yrbss %>%
+  mutate(sleep_less = ifelse(yrbss$school_night_hours_sleep < 6, "yes", "no"))
+ 
+weight_less <- yrbss %>% 
+  select(weight, sleep_less) %>% 
+  filter(sleep_less == "yes") %>%
+  na.omit()
+
+weight_more <- yrbss %>% 
+  select(weight, sleep_less) %>% 
+  filter(sleep_less == "no") %>%
+  na.omit()
+```
+
+```{r}
+boxplot(weight_less$weight, weight_more$weight,
+        names = c("less_sleep", "more_sleep"))
+```
+
+```{r}
+mn <- mean(weight_less$weight)
+sd <- sd(weight_less$weight)
+max <- max(weight_less$weight)
+max
+```
+```{r}
+mn1 <- mean(weight_more$weight)
+sd2 <- sd(weight_more$weight)
+max2 <- max(weight_more$weight)
+```
+
+```{r}
+mean_diff <- mn1 - mn
+sd <- 
+  sqrt(
+  ((mn1^2) / nrow(weight_more)) +
+  ((mn^2) / nrow(weight_less))
+  )
+```
+
+```{r}
+df <- 2492-1
+t <- qt(.05/2, df, lower.tail = FALSE)
+
+upper_ci <- mean_diff + t * sd
+lower_ci <- mean_diff - t * sd
+
+c(lower_ci ,upper_ci)
+```
+```{r}
+p_value <- 2*pt(t,df, lower.tail = FALSE)
+p_value
+```
+
