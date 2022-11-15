@@ -1,0 +1,210 @@
+---
+title: "Data_606_Lab_8_Introduction_to_Linear_Regression"
+author: "Enid Roman"
+date: "2022-11-13"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### **Getting Started**
+
+### **Load packages**
+
+```{r}
+library(tidyverse)
+library(openintro)
+data('hfi', package='openintro')
+```
+
+### **The data**
+
+```{r}
+glimpse(hfi)
+```
+
+
+### Exercise 1
+
+#### Dimension of the dataset is 1458 observations and 123 columns.
+
+```{r}
+dim(hfi)
+```
+### Exercise 2
+
+#### I would use a scatterplot as its primary use is to observe and show relationships between 2 numeric variables. The relationship seems somewhat linear, but many of the points are scattered randomly.
+
+#### The relationship seems linear, but some of the points are scattered randomly. 
+
+#### Yes I would be comfortable using a linear model to predict the personal freedom score if I knew a country’s pf_expression_control, or its score out of 10, with 0 being the most, of political pressures and controls on media content.  
+
+```{r}
+ggplot(data = hfi, aes(y = pf_score, x = pf_expression_control)) +
+  geom_point()
+```
+```{r}
+hfi %>%
+  summarise(cor(pf_expression_control, pf_score, use = "complete.obs"))
+```
+### **Sum of squared residuals**
+
+### Exercise 3
+
+####  The relationship between these two variables is the result of a positive correlation given the upward trend in pf_score as pf_expression_score increases. This positive correlation indicates that it is a strong correlation, since is a positively sloped line. This is confirmed by the ~ 0.8 correlation coefficient value.
+
+```{r}
+# subset hfi
+
+hfi1 <- hfi[c("pf_score", "pf_expression_control")]
+
+# Drop NAs
+
+hfi1 <- drop_na(hfi1)
+row.names <- NULL
+
+# This will only work interactively (i.e. will not show in the knitted document)
+DATA606::plot_ss(x = hfi1$pf_expression_control, y = hfi1$pf_score)
+```
+
+
+
+```{r}
+DATA606::plot_ss(x = hfi1$pf_expression_control, y = hfi1$pf_score, showSquares = TRUE)
+```
+
+### Exercise 4
+
+#### Not sure if this is working properly. I got 149642. The smallest sum of squared residuals I was able to achieve was 952,153.
+
+### **The linear model**
+
+```{r}
+m1 <- lm(pf_score ~ pf_expression_control, data = hfi)
+```
+
+```{r}
+summary(m1)
+```
+### Exercise 5
+
+#### Using the estimates from the R output, the equation of the regression line is 
+#### hf_score = 5.153687 - 0.349862 * pf_expression_control
+#### The slope tell us in the context of the relationship between human freedom and the amount of political pressure on media content is that for each additional amount of political pressure on media content score, we would expect the human freedom score to increase by 0.3499.
+#### The intercept tell us the human freedom score with no amount of political pressure on media is 5.1537.
+
+```{r}
+lm5 <- lm(hf_score ~ pf_expression_control, data = hfi)
+summary(lm5)
+```
+
+### **Prediction and prediction errors**
+
+```{r}
+ggplot(data = hfi, aes(x = pf_expression_control, y = pf_score)) +
+  geom_point() +
+  stat_smooth(method = "lm", se = FALSE)
+```
+
+### Exercise 6
+
+#### If someone saw the least squares regression line and not the actual data they would predict a country’s personal freedom school for one with a 6.7 rating for pf_expression_control is 7.9. This an overestimate by -.48. The residual for this prediction -.48.
+
+
+
+```{r}
+pf_exp_control <- 6.7
+
+pf_score6 <- 4.61707 + 0.49143 * pf_exp_control
+pf_score6
+```
+```{r}
+# Check oberved values of pf_score with 6.7 rating
+# for `pf_expression_control`
+
+hfi %>%
+  group_by(pf_score) %>%
+  filter(pf_expression_control == 6.7)
+
+# There is none observed value of pf_score with 6.7 rating for pf_expression_score
+# I would consider the closest one, case of Belize with 
+# observed pf_score of 7.43 for 6.75 rating for pf_expression_score
+
+residus <- 7.43 - 7.91
+residus
+```
+
+### **Model diagnostics**
+
+```{r}
+ggplot(data = m1, aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  xlab("Fitted values") +
+  ylab("Residuals")
+```
+
+### Exercise 7
+
+#### There is not an apparent pattern in the residuals plot and this indicates there is a linear relationship between the two variables.
+
+```{r}
+ggplot(data = m1, aes(x = .resid)) +
+  geom_histogram(binwidth = .25) +
+  xlab("Residuals")
+```
+```{r}
+ggplot(data = m1, aes(sample = .resid)) +
+  stat_qq()
+
+```
+
+### Exercise 8
+
+#### Both the histogram and the normal probability plot show that the distribution of these data are nearly normal. The nearly normal residuals condition appear to be met.
+
+### Exercise 9
+
+#### The points residuals vs. fitted plot show that points are scattered around 0, there is a constant variability. The constant variability condition appear to be met.
+
+### **More Practice**
+
+#### 1. I chose to test how the personal sense of security and safety (pf_ss) correlates with the role the procedural justice a given country (pf_rol_procedural). Yes this does seem to be a linear relationship.
+
+```{r}
+ggplot(data = hfi, aes(x = pf_rol_procedural, y = pf_ss))+
+  geom_point() + 
+  stat_smooth(method = "lm", se = FALSE)
+```
+
+#### 2. According to the output, the R2 value in this case is 0.4781, meaning that pf_rol_procedural accounts for approximately 47.81% of the variance seen in pf_ss. This is slightly worse than the model we saw that correlated pf_score and pf_expression_control, but still pretty good!
+
+```{r}
+lin_model <- lm(data = hfi, formula = pf_ss ~ pf_rol_procedural)
+summary(lin_model)
+```
+
+#### 3. The relationship between one’s feeling of safety and security (pf_ss) as a function of the size of the government they live in (ef_government).
+
+#### There seem to be a negative correlation between these two variables. It seems that countries with larger governments appear to have citizens that feel a lesser sense of safety and security. 
+
+```{r}
+ggplot(data = hfi, aes(x = ef_government, y = pf_ss))+
+  geom_point() + 
+  stat_smooth(method = "lm", se = FALSE)
+```
+
+#### This correlation is confirmed by analyzing the results of the linear fit.
+
+#### Question to ask is there higher incidence of corruption in larger governments? Do larger governments breed political discord? 
+
+```{r}
+lin_model <- lm(data = hfi, formula = pf_ss ~ ef_government)
+summary(lin_model)
+```
+
+
