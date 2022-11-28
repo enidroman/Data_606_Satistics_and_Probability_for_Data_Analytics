@@ -1,0 +1,277 @@
+---
+title: "Data_606_Lab_9_Multiple_Linear_Regression"
+author: "Enid Roman"
+date: "2022-11-27"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+#install.packages('GGally')
+library(tidyverse)
+library(openintro)
+library(GGally)
+```
+
+```{r}
+glimpse(evals)
+```
+```{r}
+?evals
+```
+
+### **Exploring the data**
+
+### **Exercise 1**
+
+#### This is an observational study. The original research question posed in the paper is whether beauty leads directly to the differences in course evaluations. Given the study design, we cannot easily answer the question as phrased. To isolate and test whether beauty (farily subjective) causes changes in course evalutaion would require randomized trials. In this case, we can more appropriately ask and answer is there a correlation between beauty and evaluations and/or how much of the variablility in course evaluations might be explained by beauty.
+
+### **Exercise 2**
+
+#### Scores are left skewed where the most scores are between 4.0 and 5.0 and a long tail going down to 2.0. In general students give courses above average scores >= 3.5. An ideal scoring prototcal would have resulted in a more normalized curve with the bulk in the middle and symmetic tails in both directions. I would have expected more courses to receive good score than bad score. 
+
+```{r}
+hist(evals$score)
+```
+
+### **Exercise 3**
+
+#### The two other variables I selected was rank and age. Here you can see the rank of teaching is expected to be close to age 50 to about age 55. Tenured Rank is more younger group from approximately age 35 to 45. Which is expected because that this age the tenure track is a professor's pathway to promotion and academic job security. It's the process by which an assistant professor becomes and an associate professor and then a professor. Tenured group is from approximately 45 to almoast 60. Which is expected. Tenured is having or denoting a permanent post.
+
+```{r}
+plot(evals$rank, evals$age)
+```
+### **Simple linear regression**
+
+```{r}
+ggplot(data = evals, aes(x = bty_avg, y = score)) +
+  geom_point()
+```
+#### There are 463 rows in the data set, but fewer points on the scatter plot.
+
+```{r}
+nrow(evals)
+```
+
+### **Exercise 4**
+
+#### The initial scatter plot had overlapping points. With jitter we can more clearly see where the bulk of points are landing.
+
+```{r}
+ggplot(data = evals, aes(x = bty_avg, y = score)) +
+  geom_jitter()
+```
+
+### **Exercise 5**
+
+#### The equation for the linear model is score = 3.88034+0.06664∗btyavg
+#### The slope of the line is 0.0664. The interpretation of the slope is, as avg_bty increases, the scores also increaeses; while the slope and intercept are “significant” (ie there is a positive correlation), the R2 is ~0.033 meaning only about 3.5% of the variation in score can be explained by beauty. ~96.5% of the variation is due to other factors and/or randomness.
+
+```{r}
+m_bty <- lm(evals$score ~ evals$bty_avg)
+summary(m_bty)
+```
+
+
+```{r}
+ggplot(data = evals, aes(x = bty_avg, y = score)) +
+  geom_jitter() +
+  geom_smooth(method = "lm")
+```
+
+```{r}
+ggplot(data = evals, aes(x = bty_avg, y = score)) +
+  geom_jitter() +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+### **Exercise 6**
+
+#### Residuals while not perfectly normally distributed (left skewed a little), do appear to be overall mostly normal. There so not appear to be any trends. The assumptions are broadly met.
+
+```{r}
+plot(m_bty$residuals ~ evals$bty_avg, 
+     xlab = "Beauty", ylab = "Residuals", 
+     pch = 19, 
+     axes = FALSE)
+axis(1, at = seq(-1, 2, 1))
+axis(2, at = seq(-1, 1, 1))
+box()
+abline(h = 0, lty = 3)
+```
+```{r}
+hist(m_bty$residuals, 
+     xlab = "Residuals", ylab = "", main = "",
+     xlim = c(-2,2))
+```
+```{r}
+qqnorm(m_bty$residuals, 
+       pch = 19, 
+       main = "", las = 0)
+qqline(m_bty$residuals)
+```
+```{r}
+plot(m_bty$residuals, 
+     xlab = "Order of data collection", ylab = "Residuals", main = "",
+     pch = 19, 
+     ylim = c(-1.82, 1.82), axes = FALSE)
+axis(1)
+axis(2, at = seq(-1, 1, 1))
+box()
+abline(h = 0, lty = 3)
+```
+### **Multiple linar regresssion**
+
+```{r}
+ggplot(data = evals, aes(x = bty_f1lower, y = bty_avg)) +
+  geom_point()
+```
+```{r}
+evals %>% 
+  summarise(cor(bty_avg, bty_f1lower))
+```
+
+```{r}
+evals %>%
+  select(contains("bty")) %>%
+  ggpairs()
+```
+
+```{r}
+m_bty_gen <- lm(score ~ bty_avg + gender, data = evals)
+summary(m_bty_gen)
+```
+
+### **Exercise 7**
+
+#### The conditions of the regression are reasonable therefore, P-values and parameter estimates could be trusted.: linearity of data, residuals are normal, no patterns in residuls, no strong leverage points.
+
+```{r}
+plot(m_bty_gen)
+```
+```{r}
+par(mfrow = c(2, 2))
+
+plot(m_bty_gen$residuals ~ evals$bty_avg, 
+     xlab = "Beauty", ylab = "Residuals", 
+     pch = 19,  
+     axes = FALSE)
+axis(1, at = seq(-1, 2, 1))
+axis(2, at = seq(-1, 1, 1))
+box()
+abline(h = 0, lty = 3)
+
+hist(m_bty_gen$residuals, 
+     xlab = "Residuals", ylab = "", main = "",
+     xlim = c(-2,2))
+
+qqnorm(m_bty_gen$residuals, 
+       pch = 19,
+       main = "", las = 0)
+qqline(m_bty_gen$residuals)
+
+plot(m_bty_gen$residuals, 
+     xlab = "Order of data collection", ylab = "Residuals", main = "",
+     pch = 19, 
+     ylim = c(-1.82, 1.82), axes = FALSE)
+axis(1)
+axis(2, at = seq(-1, 1, 1))
+box()
+abline(h = 0, lty = 3)
+
+```
+
+### **Exercise 8**
+
+#### Bty_avg is still significant predictor of score. Together with gender we now explain 5.5% of the variation in scores. The presence of gender has improved our model slightly, but while these are significant features, they offer low explanatory value.
+
+### **Exercise 9**
+
+#### scoreˆ=β^0+β^1×bty_avg+β^2×(1)
+#### score=(3.74734+0.17239)+0.07416∗btyavg
+#### Between two professors who received the same beauty rating, the gender that tends to have the higher course evaluation score is male.
+
+### **Exercise 10**
+
+#### R appear to handle categorical variables that have more than two levels by it creates a separate value for each rank, again leaving off the first alphabetic category which is treated as 0. Depending on which rank we are interested in, we use that value and the other is multiplied by zero so it drops out.
+
+```{r}
+m_bty_rank <- lm(score ~ bty_avg + rank, data = evals)
+summary(m_bty_rank)
+```
+### **The search for the best model**
+
+### **Exercise 11**
+
+####  Either cls_level or cls_profs likely do not have much association with professor score and thus have a high p-value.
+
+```{r}
+m_full <- lm(score ~ rank + gender + ethnicity + language + age + cls_perc_eval 
+             + cls_students + cls_level + cls_profs + cls_credits + bty_avg 
+             + pic_outfit + pic_color, data = evals)
+summary(m_full)
+```
+### **Exercise 12**
+
+#### My suspicions were correct. cls_level(upper in this case) has a p-value of .29369 and cls_profs  has a p-value of 0.77806. These are indeed the highest p-values based on the model output.
+
+### **Exercise 13**
+
+#### The coefficient associated with the ethnicity varuable, the score is increased by 0.12 points if the professor is ethnicity notminority.
+
+### **Exercise 14**
+
+#### Yes, the coefficients and significance of the other explanatory variables changed meaning that the drop of the variable is dependent on the other variables.
+
+```{r}
+drop_cls_profs <- lm(score ~ rank + ethnicity + gender + language + age + cls_perc_eval 
+             + cls_students + cls_level + cls_credits + bty_avg 
+             + pic_outfit + pic_color, data = evals)
+summary(drop_cls_profs)
+```
+### **Exercise 15**
+
+#### scoreˆ=3.771922+(ethnicity×0.167872)+(gender×0.207112)+(language×−0.206178)+(age×−0.006046)+(clsperceval×0.004656)+(clscreditsone×0.505306)+(btyavg×0.051069)+(piccolor×−0.190579)=3.91973+0.07416×bty_avg
+
+```{r}
+m_best <- lm(score ~ ethnicity + gender + language + age + cls_perc_eval 
+             + cls_credits + bty_avg + pic_color, data = evals)
+summary(m_best)
+```
+### **Exercise 16**
+
+#### The conditions for this model are reasonable. The residuals look good, the linear model fits well and there’s no problem with the leverage points.
+
+```{r}
+par(mfrow = c(2, 2))
+plot(m_best)
+
+```
+```{r}
+hist(m_best$residuals) 
+```
+```{r}
+# Normal Probability Plot
+qqnorm(m_best$residuals)
+qqline(m_best$residuals)
+```
+
+### **Exercise 17**
+
+#### No, considering that each row represents a course, this new information could not have an impact on any of the conditions of linear regression. The class courses are independent from each other therefore, the scores would also be independent.
+
+### **Exercise 18**
+
+#### The classifications for highest ranked professors based on my final model would be: non-minority, male, young, speaks English, high number of evaluations, higher amount of credits being taught, percieved as beautiful, and picture is colored.
+
+### **Exercise 19**
+
+#### I would not feel comfortable generalizing these conclusions because because other universities have different cultures. Other universities would have different results depending on their culture. 
+
