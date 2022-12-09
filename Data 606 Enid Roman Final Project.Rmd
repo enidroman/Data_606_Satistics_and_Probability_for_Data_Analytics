@@ -1,0 +1,502 @@
+---
+title: "Data 606 Enid Roman-Final Project"
+author: "Enid Roman"
+date: "2022-12-04"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## **PART I - INTRODUCTION**
+
+#### No matter where a state ranks on our annual list of best and worst drivers, everyone thinks their state has the worst drivers in America. It is known that a moving violation ticket will increase your auto insurance premium. What may surprise some drivers, however, is just how financially significant certain moving violations can be.
+
+#### InsuranceQuotes commissioned a Quadrant Information Services study that found car insurance premiums can climb by as much as 96 percent after a single moving violation on average nationwide.
+
+#### The study analyzed the average national premium increase for one moving violation in 21 different categories, including careless driving, reckless driving, driving under the influence and speeding.
+
+#### The study found the economic impact on one’s insurance premium varies significantly among different types of violations and among different states.
+
+### **RESEARCH QUESTION**
+
+### Which state has the worst drivers? Are the states driving record predictive of their average insurance premiums? 
+
+#### I want to try to answer the first question by using three types of historic data that could indicate where America’s worst drivers are: The number of car crashes in each state (especially those where the driver was negligent in some way), how much insurance companies pay out, and how much insurance companies charge drivers. All three measures vary a lot across the country.
+
+#### We know car Insurance premium varies from driver to driver and there are lots of variables at work behind that, for example: age of the driver, driving record etc. We also pay higher or lower insurance depending on which state we live in. This brings us to the answer to the second question. Are the states driving record predictive of their average insurnace premiums?
+
+## **PART II - DATA**
+
+### **DATA COLLECTION**
+
+#### Data is collected by the National Highway Traffic Safety Administration 2009 and 2012 (NHTSA) (https://www-fars.nhtsa.dot.gov/Main/index.aspx) and National Association of Insurance Commissioners 2010 & 2011(website was not provided).
+
+```{r}
+#install.packages("kableExtra")
+
+library(knitr)
+library(kableExtra)
+
+Variable <- c("Number of drivers involved in fatal collisions per billion miles", "Percentage Of Drivers Involved In Fatal Collisions Who Were Speeding", "Percentage Of Drivers Involved In Fatal Collisions Who Were Alcohol-Impaired", "Percentage Of Drivers Involved In Fatal Collisions Who Were Not Distracted","Percentage Of Drivers Involved In Fatal Collisions Who Had Not Been Involved In Any Previous Accidents", "Car Insurance Premiums",  "Losses incurred by insurance companies for collisions per insured driver")
+
+Source <- c("National Highway Traffic Safety Administration, 2012", "National Highway Traffic Safety Administration, 2009", "National Highway Traffic Safety Administration, 2012", "National Highway Traffic Safety Administration, 2012", "National Highway Traffic Safety Administration, 2012", "National Association of Insurance Commissioners, 2011", "National Association of Insurance Commissioners, 2010")
+
+data_source <- data.frame(Variable, Source)
+
+kable(data_source)
+```
+
+### **CASES**
+
+#### Each case represents the 50 states and D.C. and 8 variables (state, num_drivers, perc_speeding, perc_alcohol_impaired, perc_not_distracted, perc_no_previous, insurance_premiums, losses). There are 51 number of rows observations in the given data set representing 50 state and District of Columbia.  
+
+### **TYPE OF STUDY**
+
+#### This is an observational study.
+
+### **DATA SOURCE** 
+
+#### Data source is by Mona Chalabi from FiveThirtyEight and is available online here: https://github.com/fivethirtyeight/data/tree/master/bad-drivers 
+
+### **RESPONSE**
+
+#### The response variable is: 
+#### Car Insurance Premiums
+#### Losses incured by insurance companies for collisions per insured driver. 
+#### Both are numerical.
+
+## **EXPLANATORY** 
+
+#### The explanatory variable is:
+#### State, 
+#### Number of drivers involved in fatal collisions per billion miles, 
+#### Percentage Of Drivers Involved In Fatal Collisions Who Were Speeding, 
+#### Percentage Of Drivers Involved In Fatal Collisions Who Were Alcohol Impaired, 
+#### Percentage Of Drivers Involved In Fatal Collisions Who Were Not Distracted,                                                                      #### Percentage Of Drivers Involved In Fatal Collisions Who Had Not Been Involved In Any Previous Accidents. 
+#### All explanatory variable are numbers accept for State that is Character. 
+
+### **PART III -EXPLORATORY DATA ANALYSIS**
+
+#### For this project, the data was uploaded by calling the URL and using the read_table() function.
+
+```{r}
+# Install the libraries.
+
+library(tidyverse)
+library(ggplot2)
+#install.packages("plotly")
+library(plotly)
+library(dplyr)
+library(infer)
+library(forcats)
+library(DT)
+```
+
+```{r}
+# Upload the dataset and take a quick look at the dataset. 
+
+theUrl <- "https://raw.githubusercontent.com/fivethirtyeight/data/master/bad-drivers/bad-drivers.csv"
+
+worst_drivers <- read.table(file=theUrl, header=TRUE, sep=",")
+head(worst_drivers)
+```
+
+```{r}
+# The glimpse() function of the dplyr package can be used to see the columns of the dataset and display some portion of the data with respect to each attribute that can fit on a single line.
+
+glimpse(worst_drivers)
+```
+
+```{r}
+# Rename each column to make it shorter and easier to understand. 
+
+colnames(worst_drivers) <- c("STATE", 
+                           "DRIVERS_INVOLVED", 
+                           "PERC_DRIVERS_SPEED", 
+                           "PERC_DRIVERS_ALCHO", 
+                           "PERC_DRIVERS_NOT_DIST", 
+                           "PERC_DRIVERS_NO_ACC", 
+                           "INS_PREM", 
+                           "LOSS_INS_COMP")
+
+glimpse(worst_drivers)
+```
+
+```{r}
+# Columns PERC_DRIVERS_SPEED, PERC_DRIVERS_ALCHO, PERC_DRIVERS_NOT_DIST, PERC_DRIVERS_NO_ACC are percentages of DRIVERS_INVOLVED. In the next step I mutate new columns DRIVERS_SPEED, DRIVERS_ALCHO, DRIVERS_NOT_DIST, DRIVERS_NO_ACC by taking the given percentage of DRIVERS_INVOLVED column.
+
+change_percent_worst_drivers <- worst_drivers %>% 
+  mutate(DRIVERS_SPEED=(DRIVERS_INVOLVED*PERC_DRIVERS_SPEED)/100) %>% 
+  mutate(DRIVERS_ALCHO=(DRIVERS_INVOLVED*PERC_DRIVERS_ALCHO)/100) %>% 
+  mutate(DRIVERS_NOT_DIST=(DRIVERS_INVOLVED*PERC_DRIVERS_NOT_DIST)/100) %>% 
+  mutate(DRIVERS_NO_ACC=(DRIVERS_INVOLVED*PERC_DRIVERS_NO_ACC)/100)
+
+glimpse(change_percent_worst_drivers)
+```
+
+#### To answer the first research question we will look at the percentage of Drivers involved in Fatal Collisions, Speeding, Alcohol Impaired, Not Distracted, Not Alcohol Impaired by State.
+
+#### The table below has the percentage of Drivers involved in Fatal Collisions, Speeding, Alcohol Impaired, Not Distracted, Not Alcohol Impaired. The table is interactive so you can click on the title of each columns to sort from max to min or vice versa. You can also do a search with the search bar.
+
+```{r}
+
+# Select only State, and percentage of Number of drivers involved in fatal collisions per billion miles, percentage of drivers involved in fatal collisions who were speeding, percentage of drivers involved in fatal collisions who were alcohol impaired, percentage of drivers involved in fatal collisions who were not distracted, percentage of drivers involved in fatal collisions who had not been involved in any previous accidents.  
+
+percent_worst_drivers <- select(change_percent_worst_drivers, STATE, DRIVERS_INVOLVED,DRIVERS_SPEED, DRIVERS_ALCHO, DRIVERS_NOT_DIST, DRIVERS_NO_ACC)
+
+datatable(percent_worst_drivers)
+```
+
+#### The below graph we see that South Carolina has the most car accident due to speeding and DC has the least.
+
+```{r}
+# Created barplot comparing all the number of drivers involved in fatal collisions per billion miles with the drivers speed. 
+
+percent_worst_drivers %>% 
+  select(STATE, DRIVERS_INVOLVED, DRIVERS_SPEED) %>% 
+  gather(type, value, DRIVERS_INVOLVED:DRIVERS_SPEED) %>%
+  mutate(STATE = fct_reorder(STATE, value)) %>%
+  ggplot(., aes(x = STATE,y = value, fill = type)) +  
+  geom_bar(position = "stack", stat="identity") + 
+  scale_fill_manual(values = c("red", "darkred")) + 
+  ylab("Drivers involved in Fatal collision while Speeding") + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+ coord_flip()
+```
+
+#### The below graph we see that North Dakota has the most car accident due to drivers who were alcohol impaired and again DC has the least.
+
+```{r}
+# Created barplot comparing all the number of drivers involved in fatal collisions per billion miles with the drivers alcohol. 
+
+percent_worst_drivers %>%  
+  select(STATE, DRIVERS_INVOLVED, DRIVERS_ALCHO) %>% 
+  gather(type, value, DRIVERS_INVOLVED:DRIVERS_ALCHO) %>% 
+  mutate(STATE = fct_reorder(STATE, value)) %>%
+  ggplot(., aes(x = STATE,y = value, fill = type)) + 
+  geom_bar(position = "stack", stat="identity") + 
+  scale_fill_manual(values = c("green", "darkgreen")) + 
+  ylab("Drivers involved in Fatal collision while Alcho-Impaired") + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+ coord_flip()
+
+```
+
+#### The below graph we see that North Dakota again has the most car accident due to drivers who were not distracted and again DC has the least.
+
+```{r}
+# Created barplot comparing all the number of drivers involved in fatal collisions per billion miles with the drivers distracted.
+
+percent_worst_drivers %>% 
+  select(STATE, DRIVERS_INVOLVED, DRIVERS_NOT_DIST) %>% 
+  gather(type, value, DRIVERS_INVOLVED:DRIVERS_NOT_DIST) %>% 
+  mutate(STATE = fct_reorder(STATE, value)) %>%
+  ggplot(., aes(x = STATE,y = value, fill = type)) + 
+  geom_bar(position = "stack", stat="identity") + 
+  scale_fill_manual(values = c("lightyellow", "yellow")) + 
+  ylab("Drivers involved in Fatal collision not distracted") + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+   coord_flip()
+```
+
+#### The below graph we see that West Virginia has the most car accident due to drivers who were not alcohol impaired and again DC has the least.
+
+```{r}
+# Created barplot comparing all the number of drivers involved in fatal collisions per billion miles with drivers involved in fatal collisions who had not been involved in any previous accidents.
+
+percent_worst_drivers %>% 
+  select(STATE, DRIVERS_INVOLVED, DRIVERS_NO_ACC) %>% 
+  gather(type, value, DRIVERS_INVOLVED:DRIVERS_NO_ACC) %>% 
+  mutate(STATE = fct_reorder(STATE, value)) %>%
+  ggplot(., aes(x = STATE,y = value, fill = type)) + 
+  geom_bar(position = "stack", stat="identity") + 
+  scale_fill_manual(values = c("blue", "darkblue")) + 
+  ylab("Drivers involved in Fatal collision no pre accident") + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+   coord_flip()
+```
+
+#### The table below has the percentage of Drivers involved in Fatal Collisions, Insurance Premium and Losses incured by insurance companies for collisions per insured driver. It's interactive so you can click on the title of each columns to sort from max to min or vice versa. You can also do a search with the search bar. 
+
+```{r}
+# Select only State, Insurance Premium, and Losses Iccurred by Insurance Companies for Collisions per Insured Driver.
+
+Prem <- select(worst_drivers, STATE, DRIVERS_INVOLVED, INS_PREM, LOSS_INS_COMP)
+
+datatable(Prem)
+```
+
+#### The below graph show that New Jersey  has the highest premium and Idaho has the least. 
+
+```{r}
+# Created barplot comparing all the State with the highest Insurance Premium.
+
+Prem %>% 
+  mutate(STATE = fct_reorder(STATE, INS_PREM)) %>%
+  ggplot(., aes(x = STATE,y = INS_PREM, fill = STATE)) + 
+  geom_bar(position = "stack", stat="identity") + 
+  ylab("Car Insurance Premium") + 
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+   coord_flip()
+```
+
+#### The below graph shows that Louisiana has the highest loss incurred by insurance companies and again Idaho has the least. 
+
+```{r}
+# Created barplot comparing all the State with the highest losses inccured by insurance companies for collisions per insured driver.
+
+Prem %>% 
+  mutate(STATE = fct_reorder(STATE, LOSS_INS_COMP)) %>%
+  ggplot(., aes(x = STATE,y = LOSS_INS_COMP, fill = STATE)) + 
+  geom_bar(position = "stack", stat="identity") + 
+  ylab("Losses Incurred by Insurance Companies") + 
+theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+   coord_flip()
+```
+
+#### Below graph is an interactive graph. You can click on the bars to see the state, value and variable. 
+#### Note: Put the mouse curser in the middle of the graph and on the upper right hand side you will see icons. Click on autoscale to show all bars of the graph.
+
+```{r}
+# Created barplot comparing all the State insurance premium and losses inccured by insurance companies for collisions per insured driver with all the drivers involved in fatal collision.
+
+Prem_plot <- ggplot(data = (gather(Prem,"variable", "value", 2:4)), aes(x = STATE, y = value, fill = variable))+ geom_bar(position = "stack", stat="identity") + ggtitle("DRIVERS INVOLVED, LOSSES and INS PREMIUMS") + ylab("Number of Drivers Involved in Fatal collision Per Billion Mile/
+Losses Iincurred by Insurance Companies for Collisions Per Insured Driver($)/
+Insurance Premiums ($)") +  facet_wrap(~ variable) + coord_flip()
+
+ggplotly(Prem_plot)
+```
+
+
+## **PART IV - INFERENCE**
+
+### **DATA PREPARATION**
+
+#### I use the Linear Regression to create the linear model. Below is the summary of the linear model, Insurance Premium and Drivers Involved in fatal accident.
+
+```{r}
+# I use the lm function in R to fit the linear model. 
+
+m1 <- lm(INS_PREM ~ DRIVERS_INVOLVED, data = Prem)
+summary(m1)
+```
+
+### **Correlation**
+
+#### A absolute value of -0.1997019 is considered a very week relationship between the two variables insurance premimium and drivers involved. This is a negative correlation.
+
+```{r}
+# Quantify the strength of the relationship with the correlation coefficient.
+
+cor(Prem$INS_PREM, Prem$DRIVERS_INVOLVED)
+```
+#### Below I use a scatterplot as to observe and show relationships between 2 numeric variables, Insurance Premium and Drivers involved in fatal collisions per billion miles. 
+#### If the number of drivers involved in fatal collisions per billion miles increases by 1 the insurance premium goes down by $8.64(DRIVERS_INVOLVED), which is surprising. Only 3.99%(Multiple R-squared) of the variance found in the response variable (insurance_premiums) can be explained by the explanatory variable (drivers_involved). 
+
+```{r}
+plot(Prem$INS_PREM ~ Prem$DRIVERS_INVOLVED)
+abline(m1)
+```
+#### Below is the summary of the linear model, Insurance Premium and Loss of by insurance companies.
+
+```{r}
+m2 <- lm(INS_PREM ~ LOSS_INS_COMP, data = Prem)
+summary(m2)
+```
+
+#### A absolute value of 0.6231164 suggests a fairly predictable relationship between the two variables, insurance premium and loss incurred by the insurance companies. A correlation of .62 would be considered a large correlation. A positive sign indicates that a high score on the X variable would predict a high score on the Y variable. This is a possitive correlation. 
+
+```{r}
+cor(Prem$INS_PREM, Prem$LOSS_INS_COMP)
+```
+#### Again below I use a scatterplot to observe and show relationships between 2 numeric variables, insurance premium and loss incurred by the insurance companies. 
+#### Here for every dollar increase in losses incurred by the insurance companies the insurance premimum goes up by $4.4733(LOSS_INS_COMP), roughly 38.83%(Multiple R-squared) of the of the variance found in the response variable (insurance_premiums) can be explained by this predictor variable (losses). 
+
+```{r}
+plot(Prem$INS_PREM ~ Prem$LOSS_INS_COMP)
+abline(m2)
+```
+
+### **PREDICTION**
+
+#### To answer our second research question we will try to predict the insurance premium of three states with highest, median and lowest insurance premium by using the two chosen variables for the states; Drivers involved (number of drivers involved in fatal collisions per billion miles) and Loss Insurance Company (losses incurred by insurance companies for collisions per insured driver).
+
+#### I will analyze the data from three states with maximum, median and minimal average insurance premimums.
+
+```{r}
+Prem %>% 
+      filter(INS_PREM==max(INS_PREM)) 
+Prem %>% 
+      filter(INS_PREM==median(INS_PREM)) 
+Prem %>% 
+      filter(INS_PREM==min(INS_PREM))
+```
+
+#### To predict the insurance premiums I used the Least Square Regression Line Equation:
+
+#### y^=β0+β1x
+
+#### Where,
+
+#### β1 = The slope of the regression line
+
+#### β0 = The intercept point of the regression line and the y axis.
+
+
+
+#### **Estimate New Jersey average insurance premimum by looking at number of drivers involved in fatal collisions per billion miles:**
+
+```{r}
+DRIVERS_INVOLVED <- 11.2
+
+#Prem_Pred = Intercept + drivers_involved * DRIVERS_INVOLVED
+
+Prem_Pred <- 1023.354 + (-8.638)  * DRIVERS_INVOLVED
+Prem_Pred
+```
+
+#### 1301.52 - 926.6084 = $374.9116
+
+#### **NewJersey $926.6084**
+
+#### Our model under estimates the insurance premimum by $374.9116
+
+
+
+#### **Estimate South Carolina average insurance premimum by looking at number of drivers involved in fatal collisions per billion miles:**
+
+```{r}
+DRIVERS_INVOLVED <- 23.9
+
+#Prem_Pred = Intercept + Drivers_Involved * DRIVERS_INVOLVED
+
+Prem_Pred <- 1023.354 + (-8.638)  * DRIVERS_INVOLVED
+Prem_Pred
+```
+
+#### 858.97 - 816.9058 = 
+
+#### **SouthCarolina = $816.9058**
+
+#### Our model under estimates the insurance premimum by $42.0642
+
+
+
+#### **Estimate Idaho average insurance premimum by looking at number of drivers involved in fatal collisions per billion miles:**
+
+```{r}
+DRIVERS_INVOLVED <- 15.3
+
+#Prem_Pred = Intercept + Drivers_Involved * DRIVERS_INVOLVED
+
+Prem_Pred <- 1023.354 + (-8.638)  * DRIVERS_INVOLVED
+Prem_Pred
+```
+
+#### 641.96 - 891.1926 = -249.2326
+
+#### **Idaho = $891.1926**
+
+#### Our model over estimates the insurance premimum by $249.2326
+
+
+
+#### **Estimate New Jersey average insurance premimum by looking at losses incurred by insurance companies for collisions per insured driver:**
+
+```{r}
+LOSS_INS_COMP <- 159.85
+
+# Prem_Pred = Intercept + Loss_Ins_Comp * LOSS_INS_COMP
+
+Prem_Pred <- 285.3251 + 4.4733  * LOSS_INS_COMP
+Prem_Pred
+```
+
+#### 1301.52 - 1000.382 =
+
+#### **NewJersey = $1000.382**
+
+#### Our model under estimates the insurance premimum by $301.138
+
+
+
+#### **Estimate South Carolina average insurance premimum by looking at number of drivers involved in fatal collisions per billion miles:**
+
+```{r}
+LOSS_INS_COMP <- 116.29
+
+# Prem_Pred = Intercept + Loss_Ins_Comp * LOSS_IN_COMP
+
+Prem_Pred <- 285.3251 + 4.4733  * LOSS_INS_COMP
+Prem_Pred
+```
+
+#### 858.97 - 805.5252 = 
+
+#### **SouthCarolina = $805.525157**
+
+#### Our model under estimates the insurance premimum by $53.4448
+
+
+
+#### **Estimate Idaho average insurance premimum by looking at number of drivers involved in fatal collisions per billion miles:**
+
+```{r}
+LOSS_INS_COMP <- 82.75
+
+# Prem_Pred = Intercept + Loss_Ins_Comp * LOSS_IN_COMP
+
+Prem_Pred <- 285.3251 + 4.4733  * LOSS_INS_COMP
+Prem_Pred
+```
+
+#### 641.96 - 655.49 = 
+
+#### **Idaho = $655.4907**
+
+#### Our model over estimates the insurance premimum by $13.53
+
+
+
+#### I have used linear regression model to preditct insurance premiums from two variables. But is it appropriate to use the linear regression model here? To answer that I will conduct a model diagnostic to satisfy the following conditons:
+
+#### Linearity: The data should show a linear trend
+
+#### Nearly Normal Residuals: Generally the residuals must be nearly normal.
+
+#### Constant Variability: The variability of points around the least squares line remains roughly constant.
+
+#### Independent Observations: The observations of the data set must be independent.
+
+
+
+#### From the scatter plot below we can see there is low but a negative linear trend with some influencial outliers. The Q-Q plot and histogram indicats nearly normal residual and the residual plot shows constant variability. Also we have strong evidence of the independence of the data.
+
+```{r}
+par(mfrow=c(2,2))
+plot(Prem$DRIVERS_INVOLVED, Prem$INS_PREM)
+hist(m1$residuals)
+qqnorm(m1$residuals)
+qqline(m1$residuals)
+plot(Prem$DRIVERS_INVOLVED, m1$residuals)
+abline(h = 0, lty = 3)
+```
+
+## **PART V - CONCLUSION**
+
+#### I presented you the State with the max and the min percentage of Drivers involved in Fatal Collisions, Speeding, Alcohol Impaired, Not Distracted, Not Alcohol Impaired by State. Overall Drivers Not Distracted had the max of 23.9 and Drivers Speeding had the least with 9.45. A state with more fatal car crashes is not necessarily a state with more bad drivers. You need to consider it could be a state that has more drivers or a state that has bad roads or highways, a state with a worse driving conditions, etc. So we need to factor in the total miles traveled in each state and focus on the characteristics of the drivers who were involved in fatal collisions before reaching a conclusion.  
+
+#### I also presented you the State with the highest premium of $1301.52 and the highest loss incurred by insurance companies of $159.85, which is New Jersey and the median state which is South Carolina with insurance premium of $858.97 and a loss incurred by insurance companies of $116.29, and Idaho with the minimum insurance premium of $641.96 and a loss incurred by insurance companies of $82.75.
+
+#### The number of car crashes, even fatal ones, does not justify who is and who isn’t a bad driver. But I can say with this analyis that insurance providers think that if a person cost them a higer collision loss then they will pay a higher premium.
+
+## **REFERENCE**
+
+#### National Highway Traffic Safety Administration 2009 and 2012 (NHTSA) (https://www-fars.nhtsa.dot.gov/Main/index.aspx) and National Association of Insurance Commissioners 2010 & 2011(website was not provided)
+#### Data source is by Mona Chalabi from FiveThirtyEight and is available online here: https://github.com/fivethirtyeight/data/tree/master/bad-drivers 
+#### https://www.insurancequotes.com/auto/moving-violations-insurance-premiums-tickets-6012017
